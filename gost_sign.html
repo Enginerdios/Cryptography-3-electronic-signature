@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Электронная подпись ГОСТ Р 34.10-2012</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Tahoma, sans-serif; background: #f4f5f7; color: #333; line-height: 1.5; }
+  .wrap { max-width: 720px; margin: 30px auto; padding: 0 15px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .desc { color: #777; font-size: 13px; margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin-bottom: 12px; color: #444; }
+  .btn-group { display: flex; gap: 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+  .btn-group button { flex: 1; padding: 8px 0; border: none; background: #fafafa; font-size: 13px; cursor: pointer; color: #555; }
+  .btn-group button:not(:last-child) { border-right: 1px solid #ccc; }
+  .btn-group button.sel { background: #4a7dff; color: #fff; }
+  .btn-group button:hover:not(.sel) { background: #eef1f5; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px; }
+  input[type="text"], textarea { width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 8px 10px; font-family: Consolas, "Courier New", monospace; font-size: 13px; color: #333; outline: none; }
+  input:focus, textarea:focus { border-color: #4a7dff; }
+  textarea { resize: vertical; min-height: 80px; }
+  .field { margin-bottom: 12px; }
+  .field-row { display: flex; justify-content: space-between; align-items: center; }
+  .link-btn { background: none; border: none; color: #4a7dff; font-size: 11px; cursor: pointer; }
+  .link-btn:hover { text-decoration: underline; }
+  .go-btn { width: 100%; padding: 11px; border: none; border-radius: 6px; background: #4a7dff; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .go-btn:hover { background: #3a6ae0; }
+  .go-btn:disabled { background: #a0b8f0; cursor: wait; }
+  .go-btn.verify-btn { background: #2a9d2a; }
+  .go-btn.verify-btn:hover { background: #228b22; }
+  .err { color: #d44; font-size: 13px; margin-top: 10px; padding: 8px 10px; background: #ffeaea; border: 1px solid #f5c6c6; border-radius: 5px; }
+  .out-box { margin-top: 14px; padding: 14px; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; }
+  .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; word-break: break-all; color: #2a5db0; background: #fff; border: 1px solid #e5e5e5; border-radius: 4px; padding: 10px; max-height: 150px; overflow-y: auto; line-height: 1.7; }
+  .ok-box { margin-top: 14px; padding: 14px; background: #f0fff0; border: 1px solid #b0e0b0; border-radius: 6px; color: #2a7d2a; font-size: 14px; font-weight: 600; }
+  .fail-box { margin-top: 14px; padding: 14px; background: #fff0f0; border: 1px solid #e0b0b0; border-radius: 6px; color: #d44; font-size: 14px; font-weight: 600; }
+  .meta { font-size: 11px; color: #aaa; margin-top: 6px; }
+  .footer { text-align: center; color: #bbb; font-size: 11px; margin-top: 10px; padding-bottom: 30px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Электронная подпись ГОСТ Р 34.10-2012</h1>
+  <p class="desc">Подпись на эллиптических кривых - id-GostR3410-2001-CryptoPro-A-ParamSet (256 бит)</p>
+
+  <div class="card">
+    <h2>Ключи</h2>
+    <div class="field">
+      <div class="field-row">
+        <label>Ключевая пара</label>
+        <button class="link-btn" onclick="genKeys()" id="genBtn">сгенерировать</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Ключ подписи d (закрытый)</label>
+      <input type="text" id="dInput" placeholder="целое число (hex)">
+    </div>
+    <div class="field">
+      <label>Ключ проверки Q.x (открытый)</label>
+      <input type="text" id="qxInput" placeholder="координата x точки Q (hex)">
+    </div>
+    <div class="field">
+      <label>Ключ проверки Q.y (открытый)</label>
+      <input type="text" id="qyInput" placeholder="координата y точки Q (hex)">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Операция</h2>
+    <div class="btn-group" id="actGrp">
+      <button class="sel" onclick="setAct('sign')">Подписать</button>
+      <button onclick="setAct('verify')">Проверить</button>
+    </div>
+    <div class="field">
+      <label>Сообщение</label>
+      <textarea id="msgInput" placeholder="Введите сообщение для подписания..."></textarea>
+    </div>
+    <div class="field hidden" id="sigInputWrap">
+      <label>Подпись (r, s) через запятую</label>
+      <input type="text" id="sigInput" placeholder="r, s (hex)">
+    </div>
+  </div>
+
+  <button class="go-btn" id="goBtn" onclick="doAction()">Подписать</button>
+  <div id="errBox" class="err hidden"></div>
+  <div id="resultBox" class="hidden"></div>
+
+  <div class="footer">Практическая работа 3 - Электронная подпись</div>
+</div>
+
+<script>
+// параметры кривой id-GostR3410-2001-CryptoPro-A-ParamSet
+var cp = {
+    p: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97n,
+    a: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD94n,
+    b: 0xa6n,
+    q: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6C611070995AD10045841B09B761B893n,
+    Px: 1n,
+    Py: 0x8D91E471E0989CDA27DF505A453F2B7635294F2DDF23E3B122ACC99C9E9F1E14n
+};
+
+function egcd(a, b) {
+    if (b === 0n) return [a, 1n, 0n];
+    var x2 = 1n, x1 = 0n, y2 = 0n, y1 = 1n;
+    while (b > 0n) {
+        var q = a / b, r = a - q * b;
+        var x = x2 - q * x1, y = y2 - q * y1;
+        a = b; b = r; x2 = x1; x1 = x; y2 = y1; y1 = y;
+    }
+    return [a, x2, y2];
+}
+
+function modInv(a, n) {
+    a = ((a % n) + n) % n;
+    var res = egcd(a, n);
+    return ((res[1] % n) + n) % n;
+}
+
+function mod(a, m) { return ((a % m) + m) % m; }
+
+function pointAdd(P, Q) {
+    if (P === null) return Q;
+    if (Q === null) return P;
+    var x1 = P[0], y1 = P[1], x2 = Q[0], y2 = Q[1];
+    var p = cp.p, a = cp.a;
+    if (x1 === x2) {
+        if (mod(y1 + y2, p) === 0n) return null;
+        var lam = mod((3n * x1 * x1 + a) * modInv(2n * y1, p), p);
+    } else {
+        var lam = mod((y2 - y1) * modInv(mod(x2 - x1, p), p), p);
+    }
+    var x3 = mod(lam * lam - x1 - x2, p);
+    var y3 = mod(lam * (x1 - x3) - y1, p);
+    return [x3, y3];
+}
+
+function pointMul(k, P) {
+    if (k === 0n || P === null) return null;
+    if (k < 0n) { P = [P[0], mod(-P[1], cp.p)]; k = -k; }
+    var R = null, C = P;
+    while (k > 0n) {
+        if (k & 1n) R = pointAdd(R, C);
+        C = pointAdd(C, C);
+        k >>= 1n;
+    }
+    return R;
+}
+
+function randBigInt(max) {
+    var bits = max.toString(2).length;
+    var bytes = Math.ceil(bits / 8);
+    while (true) {
+        var arr = new Uint8Array(bytes);
+        crypto.getRandomValues(arr);
+        var val = 0n;
+        for (var i = 0; i < arr.length; i++) val = (val << 8n) | BigInt(arr[i]);
+        if (val > 0n && val < max) return val;
+    }
+}
+
+// SHA-256
+async function hashMsg(msg) {
+    var data;
+    if (typeof msg === 'string') {
+        data = new TextEncoder().encode(msg);
+    } else {
+        data = msg;
+    }
+    var buf = await crypto.subtle.digest('SHA-256', data);
+    var arr = new Uint8Array(buf);
+    var h = 0n;
+    for (var i = 0; i < arr.length; i++) h = (h << 8n) | BigInt(arr[i]);
+    return h;
+}
+
+function generateKeys() {
+    var d = randBigInt(cp.q);
+    var Q = pointMul(d, [cp.Px, cp.Py]);
+    return { d: d, Q: Q };
+}
+
+async function signMessage(msg, d) {
+    var h = await hashMsg(msg);
+    var e = mod(h, cp.q);
+    if (e === 0n) e = 1n;
+    var P = [cp.Px, cp.Py];
+    while (true) {
+        var k = randBigInt(cp.q);
+        var C = pointMul(k, P);
+        if (C === null) continue;
+        var r = mod(C[0], cp.q);
+        if (r === 0n) continue;
+        var s = mod(r * d + k * e, cp.q);
+        if (s === 0n) continue;
+        return { r: r, s: s };
+    }
+}
+
+async function verifySignature(msg, r, s, Q) {
+    if (r <= 0n || r >= cp.q || s <= 0n || s >= cp.q) return false;
+    var h = await hashMsg(msg);
+    var e = mod(h, cp.q);
+    if (e === 0n) e = 1n;
+    var v = modInv(e, cp.q);
+    var z1 = mod(s * v, cp.q);
+    var z2 = mod(-r * v, cp.q);
+    var P = [cp.Px, cp.Py];
+    var C1 = pointMul(z1, P);
+    var C2 = pointMul(z2, Q);
+    var C = pointAdd(C1, C2);
+    if (C === null) return false;
+    var R = mod(C[0], cp.q);
+    return R === r;
+}
+
+// UI
+var state = { action: 'sign' };
+
+function setAct(a) {
+    state.action = a;
+    var btns = document.getElementById('actGrp').children;
+    btns[0].className = (a === 'sign') ? 'sel' : '';
+    btns[1].className = (a === 'verify') ? 'sel' : '';
+    var btn = document.getElementById('goBtn');
+    btn.textContent = (a === 'sign') ? 'Подписать' : 'Проверить подпись';
+    btn.className = (a === 'sign') ? 'go-btn' : 'go-btn verify-btn';
+    document.getElementById('sigInputWrap').className = (a === 'verify') ? 'field' : 'field hidden';
+}
+
+function genKeys() {
+    var btn = document.getElementById('genBtn');
+    btn.textContent = 'генерация...';
+    setTimeout(function() {
+        var keys = generateKeys();
+        document.getElementById('dInput').value = keys.d.toString(16);
+        document.getElementById('qxInput').value = keys.Q[0].toString(16);
+        document.getElementById('qyInput').value = keys.Q[1].toString(16);
+        btn.textContent = 'сгенерировать';
+    }, 30);
+}
+
+function showErr(msg) {
+    var el = document.getElementById('errBox');
+    el.textContent = msg; el.classList.remove('hidden');
+}
+function hideErr() { document.getElementById('errBox').classList.add('hidden'); }
+
+async function doAction() {
+    hideErr();
+    document.getElementById('resultBox').classList.add('hidden');
+    document.getElementById('resultBox').innerHTML = '';
+
+    var msg = document.getElementById('msgInput').value;
+    if (!msg) { showErr('Введите сообщение'); return; }
+
+    var btn = document.getElementById('goBtn');
+    btn.disabled = true;
+    var origText = btn.textContent;
+    btn.textContent = 'Обработка...';
+
+    try {
+        if (state.action === 'sign') {
+            var dStr = document.getElementById('dInput').value.trim();
+            if (!dStr) { showErr('Введите или сгенерируйте ключ подписи'); throw 'stop'; }
+            var d = BigInt('0x' + dStr);
+            var sig = await signMessage(msg, d);
+            var html = '<div class="out-box">';
+            html += '<div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px">Подпись сформирована</div>';
+            html += '<div style="font-size:12px;color:#666;margin-bottom:4px">r:</div>';
+            html += '<div class="mono">' + sig.r.toString(16) + '</div>';
+            html += '<div style="font-size:12px;color:#666;margin-bottom:4px;margin-top:8px">s:</div>';
+            html += '<div class="mono">' + sig.s.toString(16) + '</div>';
+            html += '<div class="meta">Подпись: r || s (512 бит)</div>';
+            html += '</div>';
+            // заполняем поле подписи на случай проверки
+            document.getElementById('sigInput').value = sig.r.toString(16) + ', ' + sig.s.toString(16);
+            document.getElementById('resultBox').innerHTML = html;
+        } else {
+            var qxStr = document.getElementById('qxInput').value.trim();
+            var qyStr = document.getElementById('qyInput').value.trim();
+            var sigStr = document.getElementById('sigInput').value.trim();
+            if (!qxStr || !qyStr) { showErr('Введите ключ проверки (Q.x, Q.y)'); throw 'stop'; }
+            if (!sigStr) { showErr('Введите подпись (r, s)'); throw 'stop'; }
+            var Q = [BigInt('0x' + qxStr), BigInt('0x' + qyStr)];
+            var parts = sigStr.split(',').map(function(s) { return s.trim(); });
+            if (parts.length !== 2) { showErr('Подпись должна быть в формате: r, s (hex)'); throw 'stop'; }
+            var r = BigInt('0x' + parts[0]);
+            var s = BigInt('0x' + parts[1]);
+            var ok = await verifySignature(msg, r, s, Q);
+            if (ok) {
+                document.getElementById('resultBox').innerHTML = '<div class="ok-box">Подпись верна</div>';
+            } else {
+                document.getElementById('resultBox').innerHTML = '<div class="fail-box">Подпись неверна</div>';
+            }
+        }
+        document.getElementById('resultBox').classList.remove('hidden');
+    } catch(e) {
+        if (e !== 'stop') showErr('Ошибка: ' + e.message);
+    }
+    btn.disabled = false;
+    btn.textContent = origText;
+}
+</script>
+</body>
+</html>
